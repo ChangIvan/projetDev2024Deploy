@@ -21,7 +21,9 @@ const getAllCandidatures = async (req, res, next) => {
       )
     );
   }
-  res.json({ candidatures: candidatures.map((o) => o.toObject({ getters: true })) });
+  res.json({
+    candidatures: candidatures.map((o) => o.toObject({ getters: true })),
+  });
 };
 
 // --- GET SPECIFIC CANDIDATURE ---
@@ -51,13 +53,13 @@ const getCandidatureById = async (req, res, next) => {
 // --- GET TOUTES LES CANDIDATURES D'UNE OFFRE ---
 const getAllCandidaturesOffre = async (req, res, next) => {
   const offreId = req.params.offreId;
-  //CANDIDATURES dun employeur
-  // A CONTINUER
+
   let candidaturesOffre;
   try {
-    candidaturesOffre = await CANDIDATURES.find({ offreId: offreId });
+    candidaturesOffre = await CANDIDATURES.find({ offreId: offreId }).select(
+      "email candidatId status"
+    );
   } catch (e) {
-    // Vérifier si l'erreur provient du fait que l'utilisateur est introuvable
     if (e.kind == "ObjectId" && e.path == "offreId") {
       return next(new HttpError("L'offre est introuvable.", 404));
     }
@@ -71,7 +73,6 @@ const getAllCandidaturesOffre = async (req, res, next) => {
     );
   }
 
-  
   if (candidaturesOffre?.length === 0) {
     return next(
       new HttpError(
@@ -85,17 +86,17 @@ const getAllCandidaturesOffre = async (req, res, next) => {
     candidatures: candidaturesOffre.map((o) => o.toObject({ getters: true })),
   });
 };
-
 // --- GET TOUTES LES CANDIDATURES D'UN CANDIDAT ---
 const getAllCandidaturesCandidat = async (req, res, next) => {
   const candidatId = req.params.candidatId;
-  //CANDIDATURES dun employeur
-  // A CONTINUER
+
   let candidaturesCandidat;
   try {
-    candidaturesCandidat = await CANDIDATURES.find({ candidatId: candidatId });
+    candidaturesCandidat = await CANDIDATURES.find({ candidatId: candidatId }).select(
+      "email offreId titre status candidatId"
+    );
+    console.log("Candidatures pour le candidat :", candidaturesCandidat);
   } catch (e) {
-    // Vérifier si l'erreur provient du fait que l'utilisateur est introuvable
     if (e.kind == "ObjectId" && e.path == "candidatId") {
       return next(new HttpError("Le candidat est introuvable.", 404));
     }
@@ -103,26 +104,26 @@ const getAllCandidaturesCandidat = async (req, res, next) => {
     console.log(e);
     return next(
       new HttpError(
-        "Échec lors de l'obtention des candidatures de lu candidat.",
+        "Échec lors de l'obtention des candidatures du candidat.",
         500
       )
     );
   }
 
-  if (candidaturesCandidat?.length === 0) {
+  if (candidaturesCandidat.length === 0) {
     return next(
       new HttpError(
         "Ce candidat n'a pas encore de candidatures ou il est introuvable.",
-        404
-      )
+        404)
     );
   }
 
   res.json({
-    candidatures: candidaturesCandidat.map((o) => o.toObject({ getters: true })),
+    candidatures: candidaturesCandidat.map((o) =>
+      o.toObject({ getters: true })
+    ),
   });
 };
-
 
 // --- RECHERCHE DE CANDIDATURES ---
 const findCandidaturesByEmail = async (req, res, next) => {
@@ -174,16 +175,19 @@ const findCandidaturesByEmail = async (req, res, next) => {
     );
   }
 
-  res.json({ candidatures: candidatures.map((o) => o.toObject({ getters: true })) });
+  res.json({
+    candidatures: candidatures.map((o) => o.toObject({ getters: true })),
+  });
 };
 
 // --- AJOUT D'UNE CANDIDATURE ---
 const addCandidature = async (req, res, next) => {
-  const { email, offreId, candidatId } = req.body;
+  const { email, offreId, titre, candidatId } = req.body;
 
   const candidature = new CANDIDATURES({
     email,
     offreId,
+    titre,
     candidatId,
   });
 
@@ -192,11 +196,16 @@ const addCandidature = async (req, res, next) => {
   } catch (e) {
     console.log(e);
     return next(
-      new HttpError("Échec lors de la sauvegarde de la nouvelle candidature.", 500)
+      new HttpError(
+        "Échec lors de la sauvegarde de la nouvelle candidature.",
+        500
+      )
     );
   }
 
-  res.status(201).json({ candidature: candidature.toObject({ getters: true }) });
+  res
+    .status(201)
+    .json({ candidature: candidature.toObject({ getters: true }) });
 };
 
 // --- MODIFICATION D'UNE CANDIDATURE ---
@@ -205,15 +214,21 @@ const modifierCandidature = async (req, res, next) => {
   const modifications = req.body;
 
   try {
-    const candidatureModifiee = await CANDIDATURES.findByIdAndUpdate(cId, modifications, {
-      new: true,
-    });
+    const candidatureModifiee = await CANDIDATURES.findByIdAndUpdate(
+      cId,
+      modifications,
+      {
+        new: true,
+      }
+    );
 
     if (!candidatureModifiee) {
       return next(new HttpError("Candidature introuvable.", 404));
     }
 
-    res.status(201).json({ candidature: candidatureModifiee.toObject({ getters: true }) });
+    res
+      .status(201)
+      .json({ candidature: candidatureModifiee.toObject({ getters: true }) });
   } catch (e) {
     console.log(e);
     return next(
@@ -237,7 +252,9 @@ const deleteCandidature = async (req, res, next) => {
       return next(new HttpError("Candidature introuvable.", 404));
     }
 
-    res.status(200).json({ message: "La candidature a été supprimée avec succès." });
+    res
+      .status(200)
+      .json({ message: "La candidature a été supprimée avec succès." });
   } catch (e) {
     console.log(e);
     return next(
